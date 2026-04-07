@@ -3,8 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './db.js';
 import User from './models/user.js';
-import bcrypt from 'bcryptjs';    
-import e from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';    
 
 dotenv.config();
 const app = express();
@@ -32,6 +32,22 @@ const kakadeSociety = (req, res) => {
     const random = Math.round(Math.random()*100);
     res.json({message: 'thank you for visiting kakade society', random});
 };
+
+const chechJWT = (req, res, next) => {
+    const {authorization} = req.headers;
+    const token =authorization && authorization.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.json({
+            success: false,
+            message: 'Invalid token',
+            data: null
+        });
+    }};
 
 app.post('/test',gatekeeper, kakadeSociety);  
 
@@ -106,6 +122,14 @@ if(existingUser) {
     }               
 });
 
+app.get('/api_v1', chechJWT, (req, res) => {
+    res.json({ message: 'Welcome to API v1' });
+});
+
+app.get('/api_v2', chechJWT, (req, res) => {
+    res.json({ message: 'Welcome to API v2' });
+});
+
 
 app.post('/login', async(req, res) => {
     const {email,password} = req.body;
@@ -140,17 +164,25 @@ app.post('/login', async(req, res) => {
 
     existingUser.password = undefined;
 
-    if(!isPasswordValid) {
+    if(isPasswordValid) {
+        const jwtToken = jwt.sign(
+            {   id: existingUser._id,
+                email: existingUser.email
+            }, 
+            process.env.JWT_SECRET, 
+            {expiresIn: '1h'}
+        );
+        return res.json({
+            success: true,
+            message: 'Login successful',
+            data: existingUser,
+            jwttoken: jwtToken  
+        });
+    }else {
         return res.json({
             success: false,
             message: 'Invalid email or password',
             data: null
-        });
-    }else {
-        return res.json({
-            success: true,
-            message: 'Login successful',
-            data: existingUser
         });
     }
 
