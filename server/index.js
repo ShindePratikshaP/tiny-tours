@@ -17,6 +17,24 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Tiny Tours API'});
 });
 
+const gatekeeper = (req, res, next) => {
+    const {name, isSocietyMember} = req.body;
+    console.log(`Hello, ${name}`);
+    if(isSocietyMember) {
+        next();
+    } else {
+        res.json({message: 'Access denied'});
+    }
+};
+
+const kakadeSociety = (req, res) => {
+    console.log('inside kakade society controller');
+    const random = Math.round(Math.random()*100);
+    res.json({message: 'thank you for visiting kakade society', random});
+};
+
+app.post('/test',gatekeeper, kakadeSociety);  
+
 app.get('/health', (req, res) => {
   res.json({ status: 'OK' });
 });
@@ -61,7 +79,7 @@ if(existingUser) {
 
     const salt = bcrypt.genSaltSync(10);
     const encryptedPassword = bcrypt.hashSync(password, salt); 
-    
+
     const newUser = new User({
         name,
         email,
@@ -119,6 +137,8 @@ app.post('/login', async(req, res) => {
     }
 
     const isPasswordValid = bcrypt.compareSync(password, existingUser.password);
+
+    existingUser.password = undefined;
 
     if(!isPasswordValid) {
         return res.json({
