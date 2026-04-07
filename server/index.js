@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './db.js';
-import User from './models/user.js';    
+import User from './models/user.js';
+import bcrypt from 'bcryptjs';    
+import e from 'express';
 
 dotenv.config();
 const app = express();
@@ -22,16 +24,6 @@ app.get('/health', (req, res) => {
 app.post('/signup', async(req, res) => {
     const { name, email, password, mobile, city, country } = req.body;
 
-
-
-    const newUser = new User({
-        name,
-        email,
-        password,
-        mobile,
-        city,
-        country,
-    });
 
     if(!name) {
     return res.json({
@@ -67,6 +59,18 @@ if(existingUser) {
     });
 }
 
+    const salt = bcrypt.genSaltSync(10);
+    const encryptedPassword = bcrypt.hashSync(password, salt); 
+    
+    const newUser = new User({
+        name,
+        email,
+        password:encryptedPassword,
+        mobile,
+        city,
+        country,
+    });
+ 
 
     try {
         const savedUser = await newUser.save();
@@ -83,8 +87,6 @@ if(existingUser) {
         });
     }               
 });
-
-
 
 
 app.post('/login', async(req, res) => {
@@ -106,21 +108,32 @@ app.post('/login', async(req, res) => {
         });
     }
 
-    const existingUser = await User.findOne({email, password});
+    const existingUser = await User.findOne({email});
 
     if(!existingUser) {
+        return res.json({
+            success: false,
+            message: 'user with this email does not exist, please sign up',
+            data: null
+        });
+    }
+
+    const isPasswordValid = bcrypt.compareSync(password, existingUser.password);
+
+    if(!isPasswordValid) {
         return res.json({
             success: false,
             message: 'Invalid email or password',
             data: null
         });
+    }else {
+        return res.json({
+            success: true,
+            message: 'Login successful',
+            data: existingUser
+        });
     }
 
-    return res.json({
-        success: true,
-        message: 'Login successful',
-        data: existingUser
-    });
 
 });
 
