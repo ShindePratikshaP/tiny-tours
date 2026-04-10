@@ -17,21 +17,6 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Tiny Tours API'});
 });
 
-const gatekeeper = (req, res, next) => {
-    const {name, isSocietyMember} = req.body;
-    console.log(`Hello, ${name}`);
-    if(isSocietyMember) {
-        next();
-    } else {
-        res.json({message: 'Access denied'});
-    }
-};
-
-const kakadeSociety = (req, res) => {
-    console.log('inside kakade society controller');
-    const random = Math.round(Math.random()*100);
-    res.json({message: 'thank you for visiting kakade society', random});
-};
 
 const chechJWT = (req, res, next) => {
     const {authorization} = req.headers;
@@ -48,8 +33,7 @@ const chechJWT = (req, res, next) => {
             data: null
         });
     }};
-
-app.post('/test',gatekeeper, kakadeSociety);  
+  
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK' });
@@ -121,15 +105,6 @@ if(existingUser) {
         });
     }               
 });
-
-app.get('/api_v1', chechJWT, (req, res) => {
-    res.json({ message: 'Welcome to API v1' });
-});
-
-app.get('/api_v2', chechJWT, (req, res) => {
-    res.json({ message: 'Welcome to API v2' });
-});
-
 
 app.post('/login', async(req, res) => {
     const {email,password} = req.body;
